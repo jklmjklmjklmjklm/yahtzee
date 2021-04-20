@@ -1,0 +1,630 @@
+<HTML>
+<HEAD>
+	<SCRIPT TYPE="text/javascript">
+	var timer;
+	var rolls = 3;
+	var selected = 0;
+	var teams = [ "Team 1", "Team 2", "Team 3", "Team 4"];
+	var scores = [ 0, 0, 0, 0];
+	var dice = [ 0, 0, 0, 0, 0];
+	var locks = [ false, false, false, false, false];
+	
+	var combinations = [
+		"yahtzee",
+		"quadro",
+		"fullhouse",
+		"straight",
+		"trio",
+		"twopair",
+		"onepair",
+		"chance",
+		"6s",
+		"5s",
+		"4s",
+		"3s",
+		"2s",
+		"1s"
+	];
+	
+	var scoring = {
+		"yahtzee"     : 0,
+		"quadro"  	  : 0,
+		"fullhouse"	  : 0,
+		"straight"    : 0,
+		"trio"        : 0,
+		"twopair"     : 0,
+        "onepair"     : 0,
+        "chance"	  : 0,
+        "6s" 		  : 0,
+        "5s" 		  : 0,
+		"4s" 		  : 0,	
+		"3s" 		  : 0,
+		"2s" 		  : 0,
+		"1s" 		  : 0,
+	};
+	
+	var taken = {
+		"yahtzee"     : false,
+		"quadro"  	  : false,
+		"fullhouse"	  : false,
+		"straight"    : false,
+		"trio"        : false,
+		"twopair"     : false,
+        "onepair"     : false,
+        "chance"	  : false,
+        "6s" 		  : false,
+        "5s" 		  : false,
+		"4s" 		  : false,	
+		"3s" 		  : false,
+		"2s" 		  : false,
+		"1s" 		  : false,
+	};
+	
+	var possible = {
+		"yahtzee"     : false,
+		"quadro"  	  : false,
+		"fullhouse"	  : false,
+		"straight"    : false,
+		"trio"        : false,
+		"twopair"     : false,
+        "onepair"     : false,
+        "chance"	  : true,
+        "6s" 		  : true,
+        "5s" 		  : true,
+		"4s" 		  : true,	
+		"3s" 		  : true,
+		"2s" 		  : true,
+		"1s" 		  : true,
+	};
+	
+	window.onload = function () {
+		promptTeamNames();
+		updatePossibleScoring();	
+		updateView();
+	}
+
+	function promptTeamNames() {
+		for (var i = 0; i < teams.length; i++) {
+			teams[i] = prompt("Team Name: ", teams[i]);
+		}
+	}
+	
+	function reset() {
+		rolls = 3;
+		for (var i = 0; i < locks.length; i++) {
+			locks[i] = false;
+		}
+	}
+	
+	function resetScoring() {
+		for (var i = 0; i < combinations.length; i++) {
+			var c = combinations[i];
+			scoring[c] = 0;
+		}
+	}
+	
+	/* START OF UPDATE VIEW FUNCTIONS */
+	function drawScoreboard() {
+		for (var i = 0; i < teams.length; i++) {
+			var id = "team" + i;
+			var text = teams[i] + ": " + scores[i];
+			drawText(id, text);
+		}
+		drawBox("team" + selected, "green");
+	}
+	
+	function updateSelectedTeam() {
+		var team = document.getElementById("team");
+		team.innerHTML = teams[selected];
+	}
+	
+	function updateRollButton() {
+		var btn = document.getElementById("btnRoll");
+		if (rolls < 1){
+			btn.disabled = true;
+		}
+		else {
+			btn.disabled = false;
+		}
+	}
+	
+	function updateRollsCount() {
+		var p = document.getElementById("rolls");
+		p.innerHTML = "Rolls left: " + rolls;
+	}
+	
+	function drawDice() {
+		for (var i = 0; i < dice.length; i++) {
+			var id = "dice" + i;
+			var imgsrc = "images/" + dice[i].toString() + ".png";
+			drawImage(id, imgsrc);
+		}
+	}
+	
+	function drawLocks() {
+		for (var i = 0; i < locks.length; i++) {
+			var id = "dice" + i;
+			if (locks[i]) {
+				drawBox(id, "red");
+			}
+			else {
+				drawBox(id, "white");
+			}
+		}
+	}
+	
+	function updateButtons() {
+		for (var i = 0; i < combinations.length; i++) {
+			var c = combinations[i];
+			var btn = document.getElementById(c);
+			if (!taken[c]) {
+				btn.disabled = false;
+			}
+			else {
+				btn.disabled = true;
+			}
+			btn.innerHTML = scoring[c] + "<br>" + c.toUpperCase();
+		}
+	}
+	/* END OF UPDATE VIEW FUNCTIONS */
+	
+	/* START OF CLICK EVENT FUNCTIONS */
+	function toggleSelect(i){
+		selected = i;
+		for (var j = 0; j < teams.length; j++) {
+			var id = "team" + j;
+			if (j == i) {
+				drawBox(id, "green");
+			}
+			else {
+				drawBox(id, "black");
+			}
+		}
+
+		reset();
+		updateView();
+		roll();
+	}
+	
+	function toggleLock(i) {
+		var id = "dice" + i;
+
+		if (locks[i]) {
+			locks[i] = false;
+		}
+		else {
+			locks[i] = true;
+		}
+		
+		updateView();
+	}
+	
+	function addScore(id) {
+		scores[selected] = scores[selected] + scoring[id];
+		taken[id] = true;
+		rolls = 0;
+		updateView();
+		
+		for (var i = 0; i < combinations.length; i++) {
+			var c = combinations[i];
+			var btn = document.getElementById(c);
+			btn.disabled = true;
+		}
+	}
+	
+	function roll() {
+		if (rolls > 0) {
+			for (var i = 0; i < dice.length; i++) {
+				if (!locks[i]) {
+					dice[i] = Math.floor((Math.random()*6)) + 1;
+				}
+			}
+			foo = 0;
+			timer = setInterval(rollingAnimation, 100);
+			setTimeout(function () {
+				resetScoring();
+				updatePossibleScoring();
+				updateView();
+			}, 1200);
+			rolls = rolls - 1;
+		}
+	}
+	/* END OF CLICK EVENT FUNCTIONS */
+	
+	var bar = [ 1, 2, 3, 4, 5];
+	var foo = 0;
+	function rollingAnimation(){
+		if (!locks[0]) {
+			bar[0] = Math.floor((Math.random()*6)) + 1;
+			drawImage("dice0","images/" + bar[0] + ".png");
+		}
+		if (!locks[1]) {
+			bar[1] = Math.floor((Math.random()*6)) + 1;
+			drawImage("dice1","images/" + bar[1] + ".png");
+		}
+		if (!locks[2]) {
+			bar[2] = Math.floor((Math.random()*6)) + 1;
+			drawImage("dice2","images/" + bar[2] + ".png");
+		}
+		if (!locks[3]) {
+			bar[3] = Math.floor((Math.random()*6)) + 1;
+			drawImage("dice3","images/" + bar[3] + ".png");
+		}
+		if (!locks[4]) {
+			bar[4] = Math.floor((Math.random()*6)) + 1;
+			drawImage("dice4","images/" + bar[4] + ".png");
+		}
+		
+		foo++;
+		if (foo == 10) {
+			clearInterval(timer);
+		}
+	}
+
+	/* START OF UPDATE FUNCTIONS */
+	function updatePossibleScoring() {
+		if (yahtzee()) {
+			possible['yahtzee'] = true;
+			scoring['yahtzee'] = 100;
+		}
+		else{
+			possible['yahtzee'] = false;
+			scoring['yahtzee'] = 0;
+		}
+		if (quadro()) {
+			possible['quadro'] = true;
+			scoring['quadro'] = 90;
+		}
+		else{
+			possible['quadro'] = false;
+			scoring['quadro'] = 0;
+		}
+		if (fullhouse()) {
+			possible['fullhouse'] = true;
+			scoring['fullhouse'] = 80;
+		}
+		else{
+			possible['fullhouse'] = false;
+			scoring['fullhouse'] = 0;
+		}
+		if (straight()) {
+			possible['straight'] = true;
+			scoring['straight'] = 70;
+		}
+		else{
+			possible['straight'] = false;
+			scoring['straight'] = 0;
+		}
+		if (trio()) {
+			possible['trio'] = true;
+			scoring['trio'] = 60;
+		}
+		else{
+			possible['trio'] = false;
+			scoring['trio'] = 0;
+		}
+		if (twopair()) {
+			possible['twopair'] = true;
+			scoring['twopair'] = 50;
+		}
+		else{
+			possible['twopair'] = false;
+			scoring['twopair'] = 0;
+		}
+		if (onepair()) {
+			possible['onepair'] = true;
+			scoring['onepair'] = 40;
+		}
+		else{
+			possible['onepair'] = false;
+			scoring['onepair'] = 0;
+		}
+				
+		// numbers and chance
+		for (var i = 0; i <  dice.length; i++) {
+			var id = i + "s";
+			scoring['chance'] = scoring['chance'] + dice[i];
+			if (dice[i] == 6) {
+				scoring['6s'] = scoring['6s'] + 6;
+			}
+			if (dice[i] == 5) {
+				scoring['5s'] = scoring['5s'] + 5;
+			}
+			if (dice[i] == 4) {
+				scoring['4s'] = scoring['4s'] + 4;
+			}
+			if (dice[i] == 3) {
+				scoring['3s'] = scoring['3s'] + 3;
+			}
+			if (dice[i] == 2) {
+				scoring['2s'] = scoring['2s'] + 2;
+			}
+			if (dice[i] == 1) {
+				scoring['1s'] = scoring['1s'] + 1;
+			}
+		}
+	}
+	
+	function updateView() {
+		drawScoreboard();
+		updateSelectedTeam();
+		updateRollButton();
+		updateRollsCount();
+		drawDice();
+		drawLocks();
+		updateButtons();
+	}
+
+	/* END OF UPDATE FUNCTIONS */
+	
+	/* START OF CHECKER FUNCTIONS */
+	var checker = [ 1, 2, 3, 4, 5, 6];
+	var counter = [ 0, 0, 0, 0, 0, 0];
+	function yahtzee(){
+		resetCounter();
+		for(var i = 0; i < checker.length; i++){
+			for(var j = 0; j < dice.length; j++){
+				if(dice[j] == checker[i]){
+					counter[i] = counter[i] + 1;
+				}
+			}
+		}
+
+		for(var i = 0; i < counter.length; i++){
+			if(counter[i] >= 5){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function quadro(){
+		resetCounter();
+		for(var i = 0; i < checker.length; i++){
+			for(var j = 0; j < dice.length; j++){
+				if(dice[j] == checker[i]){
+					counter[i] = counter[i] + 1;
+				}
+			}
+		}
+
+		for(var i = 0; i < counter.length; i++){
+			if(counter[i] >= 4){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function fullhouse() {
+		return (trio() && twopair());
+	}
+	
+	function straight() {
+		var smallstraight = [ 1, 2, 3, 4, 5];
+		var bigstraight = [ 2, 3, 4, 5, 6,];
+		return (strChk(smallstraight) || strChk(bigstraight));
+	}
+	
+	function strChk(chckr) {
+		var cntr = [ false, false, false, false, false];
+		for (var i = 0; i < chckr.length; i++) {
+			for (var j = 0; j < dice.length; j++) {
+				if (dice[j] == chckr[i]) {
+					cntr[i] = true;
+				}
+			}
+		}
+		
+		var ctr = 0;
+		for(var i = 0; i < cntr.length; i++){
+			if(cntr[i]){
+				ctr = ctr + 1;
+			}
+		}
+
+		if(ctr == 5){
+			return true;
+		}
+		return false;
+	}
+	
+	function trio(){
+		resetCounter();
+		for(var i = 0; i < checker.length; i++){
+			for(var j = 0; j < dice.length; j++){
+				if(dice[j] == checker[i]){
+					counter[i] = counter[i] + 1;
+				}
+			}
+		}
+
+		for(var i = 0; i < counter.length; i++){
+			if(counter[i] >= 3){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function twopair() {
+		resetCounter();
+		for(var i = 0; i < checker.length; i++){
+			for(var j = 0; j < dice.length; j++){
+				if(dice[j] == checker[i]){
+					counter[i] = counter[i] + 1;
+				}
+			}
+		}
+
+		var ctr = 0;
+		for(var i = 0; i < counter.length; i++){
+			if(counter[i] >= 2){
+				ctr = ctr + 1;
+			}
+		}
+
+		if(ctr == 2){
+			return true;
+		}
+		return false;
+	}
+	
+	function onepair() {
+		resetCounter();
+		for(var i = 0; i < checker.length; i++){
+			for(var j = 0; j < dice.length; j++){
+				if(dice[j] == checker[i]){
+					counter[i] = counter[i] + 1;
+				}
+			}
+		}
+
+		for(var i = 0; i < counter.length; i++){
+			if(counter[i] >= 2){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	function resetCounter(){
+		for (var i = 0; i < counter.length; i++){
+			counter[i] = 0;
+		}
+	}
+	/* END OF CHECKER FUNCTIONS*/
+	
+	/* FUNCTIONS FOR DRAWING */
+	function drawBox(id, clr) {
+		var cvs = document.getElementById(id);
+		var ctx = cvs.getContext("2d");
+		
+		ctx.beginPath();
+		ctx.rect(0, 0, cvs.width, cvs.height);
+		ctx.lineWidth = 10;
+		ctx.strokeStyle = clr;
+		ctx.stroke();
+	}
+	
+	function drawImage(id, imgsrc) {
+		var cvs = document.getElementById(id);
+		var ctx = cvs.getContext("2d");
+		var img = new Image;
+	
+		img.src = imgsrc;
+		img.onload = function() {
+			ctx.drawImage(img, 10, 10, 130, 130);
+		}
+	}
+	
+	function drawText(id, text) {
+		var cvs = document.getElementById(id);
+		cvs.width = cvs.width;
+		var ctx = cvs.getContext("2d");
+					
+		ctx.beginPath();
+		ctx.rect(0, 0, cvs.width, cvs.height);
+		ctx.fillStyle = "white";
+		ctx.font = "50px Arial"
+		ctx.fillText(text, 5, 90);
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = "black";
+		ctx.stroke();
+	}
+	
+	</SCRIPT>
+	<STYLE TYPE="text/css">
+	button {
+		border: 0px;
+		background: #3e779d;
+		background: -webkit-gradient(linear, left top, left bottom, from(#3e779d), to(#3e779d));
+		background: -webkit-linear-gradient(top, #3e779d, #3e779d);
+		background: -moz-linear-gradient(top, #3e779d, #3e779d);
+		background: -ms-linear-gradient(top, #3e779d, #3e779d);
+		background: -o-linear-gradient(top, #3e779d, #3e779d);
+		padding: 5px 10px;
+		-webkit-border-radius: 8px;
+		-moz-border-radius: 8px;
+		border-radius: 8px;
+		-webkit-box-shadow: rgba(0,0,0,1) 0 1px 0;
+		-moz-box-shadow: rgba(0,0,0,1) 0 1px 0;
+		box-shadow: rgba(0,0,0,1) 0 1px 0;
+		text-shadow: rgba(0,0,0,.4) 0 1px 0;
+		color: #ffffff;
+		font-size: 20px;
+		font-family: 'Lucida Grande', Helvetica, Arial, Sans-Serif;
+		text-decoration: none;
+		vertical-align: middle;
+		width: 125px;
+		margin: 3px;
+	}
+	button:hover {
+		border-top-color: #213f54;
+		background: #213f54;
+		color: #ffffff;
+	}
+	button:disabled {
+		background: #ffffff;
+		color: #000000;
+		border: 2px solid;
+		box-shadow: 0px;
+	}
+	#left {
+		background: black;
+		color: #ffffff;
+		width: 400px;
+		height: 99%;
+	}
+	.teamname {
+		width: 100%;
+		height: 100px; 
+	}
+	div.teamname {
+		font-size: 50px;
+		font-family: Arial;
+		height: 60px;
+		color: white;
+	}
+	</STYLE>
+</HEAD>
+<BODY>
+<div id="left" style="float: left; margin-right: 10px;">
+	<div class="teamname" style="margin: 10px;">Scoreboard</div>
+	<canvas class="teamname" id="team0" onclick="toggleSelect(0)">Team 1</canvas>
+	<canvas class="teamname" id="team1" onclick="toggleSelect(1)">Team 2</canvas>
+	<canvas class="teamname" id="team2" onclick="toggleSelect(2)">Team 3</canvas>
+	<canvas class="teamname" id="team3" onclick="toggleSelect(3)">Team 4</canvas>
+</div>
+<br>
+<div id="right">
+	<center>
+	<h2 id="team">Team 1</h2>
+	<button id="btnRoll" onclick="roll();">ROLL</button><b><p id="rolls">Rolls left: 3</p></b>
+	<canvas id="dice0" width="150" height="150" onclick="toggleLock(0);"></canvas>
+	<canvas id="dice1" width="150" height="150" onclick="toggleLock(1);"></canvas>
+	<canvas id="dice2" width="150" height="150" onclick="toggleLock(2);"></canvas>
+	<canvas id="dice3" width="150" height="150" onclick="toggleLock(3);"></canvas>
+	<canvas id="dice4" width="150" height="150" onclick="toggleLock(4);"></canvas>
+	<br>
+	<button id="yahtzee" onclick="addScore(this.id);" disabled>100<br>YAHTZEE</button>
+	<br>
+	<button id="quadro" onclick="addScore(this.id);">90<br>QUADRO</button>
+	<button id="fullhouse" onclick="addScore(this.id);">80<br>FULLHOUSE</button>
+	<button id="straight" onclick="addScore(this.id);">70<br>STRAIGHT</button>
+	<button id="trio" onclick="addScore(this.id);">60<br>TRIO</button>
+	<button id="twopair" onclick="addScore(this.id);">50<br>TWOPAIR</button>
+	<button id="onepair" onclick="addScore(this.id);">40<br>ONEPAIR</button>
+	<br>
+	<button id="6s" onclick="addScore(this.id);">30<br>6S</button>
+	<button id="5s" onclick="addScore(this.id);">25<br>5S</button>
+	<button id="4s" onclick="addScore(this.id);">20<br>4S</button>
+	<button id="3s" onclick="addScore(this.id);">15<br>3S</button>
+	<button id="2s" onclick="addScore(this.id);">10<br>2S</button>
+	<button id="1s" onclick="addScore(this.id);"> 5<br>1S</button>
+	<br>
+	<button id="chance" onclick="addScore(this.id);">30<br>CHANCE</button>
+	</center>
+</div>
+</BODY>
+</HTML>
