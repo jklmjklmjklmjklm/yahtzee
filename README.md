@@ -1,2 +1,2 @@
-# yahtzee
+# Yahtzee
 Poker Dice
